@@ -26,8 +26,10 @@ y = prediction["hardness"]
 # %% K-fold cross-validation
 if split_by_groups:
     cv = GroupKFold()
+    cvtype = "gcv"
 else:
     cv = KFold(shuffle=True, random_state=100)  # ignores groups
+    cvtype = "cv"
 
 results = cross_validate(
     VickersHardness(hyperopt=True),
@@ -45,10 +47,10 @@ merge_df = pd.concat(result_dfs)
 merge_df["actual_hardness"] = y
 
 parity_with_err(
-    merge_df, error_y="y_upper", error_y_minus="y_lower", fname="parity_ci_cv"
+    merge_df, error_y="y_upper", error_y_minus="y_lower", fname=f"parity_ci_{cvtype}"
 )
-parity_with_err(merge_df, error_y="y_std", fname="parity_stderr_cv")
-parity_with_err(merge_df, fname="parity_stderr_calib_cv")
+parity_with_err(merge_df, error_y="y_std", fname=f"parity_stderr_{cvtype}")
+parity_with_err(merge_df, fname=f"parity_stderr_calib_{cvtype}")
 
 y_true, y_pred = [merge_df["actual_hardness"], merge_df["predicted_hardness"]]
 mae = mean_absolute_error(y_true, y_pred)
@@ -56,7 +58,7 @@ rmse = mean_squared_error(y_true, y_pred, squared=False)
 # CV-MAE: 2.2957275 (HV)
 # CV-RMSE: 3.4197476 (HV)
 
-merge_df.sort_index().to_csv(join("results", "cv-results.csv"))
+merge_df.sort_index().to_csv(join("results", f"{cvtype}-results.csv"))
 1 + 1
 
 
