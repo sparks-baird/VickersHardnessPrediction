@@ -16,7 +16,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from vickers_hardness.vickers_hardness_ import VickersHardness
 
 recalibrate = True
-split_by_groups = True
+split_by_groups = False
 
 # %% load dataset
 X = pd.read_csv(join("vickers_hardness", "data", "hv_des.csv"))
@@ -55,8 +55,16 @@ parity_with_err(merge_df, fname=f"parity_stderr_calib_{cvtype}")
 y_true, y_pred = [merge_df["actual_hardness"], merge_df["predicted_hardness"]]
 mae = mean_absolute_error(y_true, y_pred)
 rmse = mean_squared_error(y_true, y_pred, squared=False)
-# CV-MAE: 2.2957275 (HV)
-# CV-RMSE: 3.4197476 (HV)
+print(f"MAE: {mae:.5f}")
+print(f"RMSE: {rmse:.5f}")
+
+# CV-MAE: 1.67359 (HV)
+# GCV-MAE: 2.2957275 (HV)
+# increases by 0.62 (HV)
+
+# CV-RMSE: 2.70621 (HV)
+# GCV-RMSE: 3.4197476 (HV)
+# increases by 0.71 (HV)
 
 merge_df.sort_index().to_csv(join("results", f"{cvtype}-results.csv"))
 1 + 1
