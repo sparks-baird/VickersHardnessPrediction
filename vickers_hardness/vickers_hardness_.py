@@ -15,9 +15,16 @@ from vickers_hardness.utils.uncertainty import log_cosh_quantile
 
 
 class VickersHardness(BaseEstimator):
-    def __init__(self, recalibrate=True, hyperopt=True, xgb_parameters=None):
+    def __init__(
+        self,
+        recalibrate=True,
+        hyperopt=True,
+        xgb_parameters=None,
+        result_dir="results",
+    ):
         self.recalibrate = recalibrate
         self.hyperopt = hyperopt
+        self.result_dir = result_dir
         if xgb_parameters is None:
             self.xgb_parameters = dict(
                 max_depth=4,
@@ -47,11 +54,16 @@ class VickersHardness(BaseEstimator):
 
     def get_params(self, deep=True):
         if not deep:
-            return {"recalibrate": self.recalibrate, "hyperopt": self.hyperopt}
+            return {
+                "recalibrate": self.recalibrate,
+                "hyperopt": self.hyperopt,
+                "result_dir": self.result_dir,
+            }
         else:
             return {
                 "recalibrate": self.recalibrate,
                 "hyperopt": self.hyperopt,
+                "result_dir": self.result_dir,
                 "xgb_parameters": self.xgb_parameters,
             }
 
@@ -62,8 +74,8 @@ class VickersHardness(BaseEstimator):
         self.X_train = X_train
         self.y_train = y_train
         # %% scale the data
-        self.composition_train = self.X_train["composition"].to_frame()
-        self.X_train.drop(columns=["composition"], inplace=True)
+        self.composition_train = self.X_train["formula"].to_frame()
+        self.X_train.drop(columns=["formula"], inplace=True)
         self.scaler = preprocessing.StandardScaler().fit(X_train)
         X_train_scl = self.scaler.transform(X_train)
 
@@ -105,8 +117,8 @@ class VickersHardness(BaseEstimator):
 
         # %% Prediction
         self.X_test = X_test
-        self.composition_test = self.X_test["composition"].to_frame()
-        self.X_test.drop(columns=["composition"], inplace=True)
+        self.composition_test = self.X_test["formula"].to_frame()
+        self.X_test.drop(columns=["formula"], inplace=True)
         X_test_scl = self.scaler.transform(X_test)
 
         self.y_pred = self.xgb_mdl.predict(X_test_scl)
@@ -134,7 +146,10 @@ class VickersHardness(BaseEstimator):
         else:
             self.y_std_calib = self.y_std
 
-        self.test_load = X_test["load"]
+        if "load" in X_test.columns.tolist():
+            self.test_load = X_test["load"]
+        else:
+            self.test_load = np.nan * np.zeros(X_test.shape[0])
         result_df = pd.DataFrame(
             {
                 "actual_hardness": y_test_vals,
@@ -152,11 +167,8 @@ class VickersHardness(BaseEstimator):
             print("MAE: ", mean_absolute_error(y_test, self.y_pred))
             print("R2: ", r2_score(y_test, self.y_pred))
 
-        Path("results").mkdir(exist_ok=True)
-        self.result_df.to_csv(join("results", "predicted_hv.csv"), index=False)
-        print(
-            "A file named predicted_hv.csv has been generated.\nPlease check your folder."
-        )
+        Path(self.result_dir).mkdir(exist_ok=True)
+        self.result_df.to_csv(join(self.result_dir, "predicted_hv.csv"), index=False)
 
         return self.y_pred
 

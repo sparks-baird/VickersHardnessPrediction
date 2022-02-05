@@ -61,7 +61,7 @@ def parity_with_err(
     error_y="y_std_calib",
     error_y_minus=None,
     size="load",
-    hover_data=["composition"],
+    hover_data=["formula"],
     figfolder="figures",
     fname="parity_err_calib",
     auto_open=True,
@@ -85,7 +85,7 @@ def parity_with_err(
     size : str, optional
         name of variable from `result_df` that will control size of markers, by default "load"
     hover_data : list, optional
-        list of names of additional data to include when point is hovered on by mouse, by default ["composition"]
+        list of names of additional data to include when point is hovered on by mouse, by default ["formula"]
     figfolder : str, optional
         [description], by default "figures"
     fname : str, optional
