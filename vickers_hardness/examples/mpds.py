@@ -1,54 +1,82 @@
 """Load the MPDS Vickers hardness dataset."""
 from os.path import join
-import numpy as np
 import pandas as pd
 
-from composition_based_feature_vector.composition import generate_features
-from sklearn.model_selection import KFold, cross_validate
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
+from composition_based_feature_vector.composition import generate_features
+from sklearn.model_selection import KFold, cross_validate, GroupKFold
+
+from vickers_hardness.utils.plotting import parity_with_err
 from vickers_hardness.vickers_hardness_ import VickersHardness
 
-data = pd.read_csv(
-    join("vickers_hardness", "data", "mpds-vickers-hardness.csv")
-).rename(columns={"pretty_formula": "formula", "vickers-hardness": "target"})
+mapper = {"pretty_formula": "formula", "vickers-hardness": "target"}
+fpath = join("vickers_hardness", "data", "mpds-vickers-hardness.csv")
+data = pd.read_csv(fpath).rename(columns=mapper)
 df = data[["formula", "target"]]
 df = df.dropna()
 df = df.groupby(by="formula", as_index=False).mean()
-# df = df.drop_duplicates("formula")
 X, y, formulae, skipped = generate_features(df)
 
-data2 = pd.read_csv(join("vickers_hardness", "data", "hv_comp_load.csv")).rename(
-    columns={"composition": "formula", "hardness": "target"}
-)
-df2 = data2[["formula", "target"]]
-df2 = df2.groupby(by="formula", as_index=False).mean()
-# df2 = df2.drop_duplicates("formula")
-X2, y2, formulae2, skipped2 = generate_features(df2)
+# add formula back in for VickersHardness()
+X["formula"] = formulae
 
-Xcomb = pd.concat((X, X2), axis=0, ignore_index=True)
-scaler = MinMaxScaler()
-scaler.fit(Xcomb)
-Xscl = scaler.transform(Xcomb)
-df_scl = pd.DataFrame(np.round(Xscl, decimals=2), columns=X.columns)
-n_uniq = df_scl.drop_duplicates().shape[0]
-n_dup = df.shape[0] + df2.shape[0] - n_uniq
-print(f"Number of shared formulas: {n_dup}")
-# Number of shared formulas: 277
-# Number of unique formulas (collectively): 783
+hyperopt = True
+recalibrate = True
+split_by_groups = False  # doesn't do anything since repeat formulae skipped
 
-cv = KFold(shuffle=True, random_state=100)  # ignores groups
-cvtype = "cv"
+# %% K-fold cross-validation
+if split_by_groups:
+    cv = GroupKFold()
+    cvtype = "gcv"
+else:
+    cv = KFold(shuffle=True, random_state=100)  # ignores groups
+    cvtype = "cv"
+
+figure_dir = join("figures", "mpds", f"{cvtype}_hyper{hyperopt}")
+result_dir = join("results", "mpds", f"{cvtype}_hyper{hyperopt}")
 
 results = cross_validate(
-    VickersHardness(hyperopt=True),
+    VickersHardness(hyperopt=hyperopt, recalibrate=recalibrate, result_dir=result_dir),
     X,
     y,
-    groups=X["composition"],
+    # groups=formulae,
     cv=cv,
     scoring="neg_mean_absolute_error",
     return_estimator=True,
 )
+
+estimators = results["estimator"]
+result_dfs = [estimator.result_df for estimator in estimators]
+merge_df = pd.concat(result_dfs)
+merge_df["actual_hardness"] = y
+
+parity_with_err(
+    merge_df,
+    figfolder=figure_dir,
+    error_y="y_upper",
+    error_y_minus="y_lower",
+    fname=f"parity_ci",
+    size=None,
+)
+parity_with_err(
+    merge_df, figfolder=figure_dir, error_y="y_std", fname=f"parity_stderr", size=None,
+)
+parity_with_err(
+    merge_df, figfolder=figure_dir, fname=f"parity_stderr_calib", size=None,
+)
+
+y_true, y_pred = [merge_df["actual_hardness"], merge_df["predicted_hardness"]]
+mae = mean_absolute_error(y_true, y_pred)
+rmse = mean_squared_error(y_true, y_pred, squared=False)
+print(f"MAE: {mae:.5f}")
+print(f"RMSE: {rmse:.5f}")
+
+# CV and GCV equivalent because duplicates are removed first
+# GCV-MAE:  (HV)
+# GCV-RMSE:  (HV)
+
+merge_df.sort_index().to_csv(join(result_dir, "results.csv"))
 
 1 + 1
 
