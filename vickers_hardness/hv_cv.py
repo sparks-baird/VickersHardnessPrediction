@@ -5,11 +5,7 @@ import pandas as pd
 
 from vickers_hardness.utils.plotting import parity_with_err
 
-from sklearn.model_selection import (
-    KFold,
-    GroupKFold,
-    cross_validate,
-)
+from sklearn.model_selection import KFold, GroupKFold, cross_validate
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
@@ -19,7 +15,9 @@ recalibrate = True
 split_by_groups = False
 
 # %% load dataset
-X = pd.read_csv(join("vickers_hardness", "data", "hv_des.csv"))
+X = pd.read_csv(join("vickers_hardness", "data", "hv_des.csv")).rename(
+    {"composition": "formula"}
+)
 prediction = pd.read_csv(join("vickers_hardness", "data", "hv_comp_load.csv"))
 y = prediction["hardness"]
 
@@ -32,10 +30,10 @@ else:
     cvtype = "cv"
 
 results = cross_validate(
-    VickersHardness(hyperopt=True),
+    VickersHardness(hyperopt=True, recalibrate=recalibrate),
     X,
     y,
-    groups=X["composition"],
+    groups=X["formula"],
     cv=cv,
     scoring="neg_mean_absolute_error",
     return_estimator=True,
