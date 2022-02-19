@@ -9,7 +9,7 @@ from sklearn.base import BaseEstimator
 from sklearn.metrics import r2_score, mean_absolute_error
 from sklearn import preprocessing
 
-import uncertainty_toolbox as uct
+# import uncertainty_toolbox as uct
 
 from vickers_hardness.utils.uncertainty import log_cosh_quantile
 
