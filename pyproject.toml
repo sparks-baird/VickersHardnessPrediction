@@ -17,7 +17,7 @@ dynamic = ["version", "description"]
 
 dependencies = [
     "plotly",
-    "python-kaleido",
+    "kaleido",
     "pandas",
     "pymatgen",
     "matplotlib",
