@@ -12,8 +12,6 @@ from sklearn.metrics import r2_score, mean_absolute_error
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 
-import uncertainty_toolbox as uct
-
 from vickers_hardness.utils.uncertainty import log_cosh_quantile
 
 recalibrate = True
@@ -91,13 +89,7 @@ y_test_vals = y_test.values.ravel()
 
 # https://handbook-5-1.cochrane.org/chapter_7/7_7_3_2_obtaining_standard_deviations_from_standard_errors_and.htm
 y_std = (y_upper - y_lower) / 3.92  # hard-coded for 95% CI, sample_size is 1 (?)
-if recalibrate:
-    std_recalibrator = uct.recalibration.get_std_recalibrator(
-        y_pred, y_std, y_test_vals, criterion="ma_cal"
-    )
-    y_std_calib = std_recalibrator(y_std)
-else:
-    y_std_calib = y_std
+y_std_calib = y_std
 
 result_df = pd.DataFrame(
     {
@@ -117,17 +109,17 @@ parity_with_err(result_df, error_y="y_upper", error_y_minus="y_lower")
 parity_with_err(result_df, error_y="y_std", fname="parity_err")
 parity_with_err(result_df)
 
-_, ax = plt.subplots(1, 1, figsize=(5, 5))
-uct.viz.plot_calibration(y_pred, y_std, y_test_vals, ax=ax)
-ax.set_title("")
-plt.show()
-plt.savefig(join("figures", "pre-cal.png"))
+# _, ax = plt.subplots(1, 1, figsize=(5, 5))
+# uct.viz.plot_calibration(y_pred, y_std, y_test_vals, ax=ax)
+# ax.set_title("")
+# plt.show()
+# plt.savefig(join("figures", "pre-cal.png"))
 
-_, ax2 = plt.subplots(1, 1, figsize=(5, 5))
-uct.viz.plot_calibration(y_pred, y_std_calib, y_test_vals, ax=ax2)
-ax2.set_title("")
-plt.show()
-plt.savefig(join("figures", "post-cal.png"))
+# _, ax2 = plt.subplots(1, 1, figsize=(5, 5))
+# uct.viz.plot_calibration(y_pred, y_std_calib, y_test_vals, ax=ax2)
+# ax2.set_title("")
+# plt.show()
+# plt.savefig(join("figures", "post-cal.png"))
 
 print("MAE: ", mean_absolute_error(y_test, y_pred))
 print("R2: ", r2_score(y_test, y_pred))

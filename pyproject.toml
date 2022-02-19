@@ -23,7 +23,7 @@ dependencies = [
     "matplotlib",
     "numpy",
     "scikit_learn",
-    "uncertainty_toolbox",
+    # "uncertainty_toolbox",
     "xgboost",
     "shap_hypetune",
 ]
