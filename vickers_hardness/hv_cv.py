@@ -1,14 +1,12 @@
 """Predict hardness values using XGBoost."""
 from os.path import join
+
 import numpy as np
 import pandas as pd
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.model_selection import GroupKFold, KFold, cross_validate
 
 from vickers_hardness.utils.plotting import parity_with_err
-
-from sklearn.model_selection import KFold, GroupKFold, cross_validate
-
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-
 from vickers_hardness.vickers_hardness_ import VickersHardness
 
 recalibrate = True
@@ -18,6 +16,7 @@ split_by_groups = False
 X = pd.read_csv(join("vickers_hardness", "data", "hv_des.csv")).rename(
     {"composition": "formula"}
 )
+groups = X["formula"]
 prediction = pd.read_csv(join("vickers_hardness", "data", "hv_comp_load.csv"))
 y = prediction["hardness"]
 
@@ -33,11 +32,10 @@ results = cross_validate(
     VickersHardness(hyperopt=True, recalibrate=recalibrate),
     X,
     y,
-    groups=X["formula"],
+    groups=groups,
     cv=cv,
     scoring="neg_mean_absolute_error",
     return_estimator=True,
-    groups=X["load"]
 )
 
 estimators = results["estimator"]
