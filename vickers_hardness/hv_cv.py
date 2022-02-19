@@ -37,6 +37,7 @@ results = cross_validate(
     cv=cv,
     scoring="neg_mean_absolute_error",
     return_estimator=True,
+    groups=X["load"]
 )
 
 estimators = results["estimator"]
