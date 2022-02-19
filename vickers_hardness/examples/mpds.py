@@ -29,7 +29,8 @@ split_by_groups = False  # doesn't do anything since repeat formulae skipped
 if split_by_groups:
     cv = GroupKFold()
     cvtype = "gcv"
-    groups=X["load"]
+    groups=formulae
+    # groups = X["load"]
 else:
     cv = KFold(shuffle=True, random_state=100)  # ignores groups
     cvtype = "cv"
@@ -41,7 +42,7 @@ results = cross_validate(
     VickersHardness(hyperopt=hyperopt, recalibrate=recalibrate, result_dir=result_dir),
     X,
     y,
-    # groups=formulae,
+    groups=groups,
     cv=cv,
     scoring="neg_mean_absolute_error",
     return_estimator=True,
