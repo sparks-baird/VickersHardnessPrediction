@@ -21,14 +21,15 @@ class VickersHardness(BaseEstimator):
         xgb_parameters=None,
         result_dir="results",
     ):
-        try:
-            import uncertainty_toolbox
-        except Exception as e:
-            # https://blog.finxter.com/how-to-catch-and-print-exception-messages-in-python/
-            print(e)
-            warn(
-                "Could not import `uncertainty_toolbox`. Maybe try `pip install uncertainty_toolbox`; if already installed, you might be running into issues with Shapely on Windows. See https://github.com/uncertainty-toolbox/uncertainty-toolbox/issues/63. Alternatively, use in `VickersHardness(recalibrate=False)`."
-            )
+        if recalibrate:
+            try:
+                import uncertainty_toolbox
+            except Exception as e:
+                # https://blog.finxter.com/how-to-catch-and-print-exception-messages-in-python/
+                print(e)
+                warn(
+                    "Could not import `uncertainty_toolbox`. Maybe try `pip install uncertainty_toolbox`; if already installed, you might be running into issues with Shapely on Windows. See https://github.com/uncertainty-toolbox/uncertainty-toolbox/issues/63. Alternatively, use in `VickersHardness(recalibrate=False)`."
+                )
         self.recalibrate = recalibrate
         self.hyperopt = hyperopt
         self.result_dir = result_dir
