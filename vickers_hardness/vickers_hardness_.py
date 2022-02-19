@@ -10,19 +10,25 @@ from sklearn.base import BaseEstimator
 from sklearn.metrics import r2_score, mean_absolute_error
 from sklearn import preprocessing
 
-# import uncertainty_toolbox as uct
-
 from vickers_hardness.utils.uncertainty import log_cosh_quantile
 
 
 class VickersHardness(BaseEstimator):
     def __init__(
         self,
-        recalibrate=True,
+        recalibrate=False,
         hyperopt=True,
         xgb_parameters=None,
         result_dir="results",
     ):
+        try:
+            import uncertainty_toolbox
+        except Exception as e:
+            # https://blog.finxter.com/how-to-catch-and-print-exception-messages-in-python/
+            print(e)
+            warn(
+                "Could not import `uncertainty_toolbox`. Maybe try `pip install uncertainty_toolbox`; if already installed, you might be running into issues with Shapely on Windows. See https://github.com/uncertainty-toolbox/uncertainty-toolbox/issues/63. Alternatively, use in `VickersHardness(recalibrate=False)`."
+            )
         self.recalibrate = recalibrate
         self.hyperopt = hyperopt
         self.result_dir = result_dir
@@ -109,7 +115,7 @@ class VickersHardness(BaseEstimator):
         self.xgb_upper.fit(X_train_scl, y_train)
         self.xgb_lower.fit(X_train_scl, y_train)
 
-    def predict(self, X_test, y_test=None, verbose=True):
+    def predict(self, X_test, y_test=None, verbose=True, return_uncertainty=False):
         if y_test is None:
             skip_mae = True
             y_test = np.zeros(X_test.shape[0])
@@ -140,15 +146,9 @@ class VickersHardness(BaseEstimator):
         self.y_std = (self.y_upper - self.y_lower) / 3.92
         self.y_std[self.y_std <= 0] = 1e-4
         if self.recalibrate:
-            try:
-                import uncertainty_toolbox
-            except Exception as e:
-                # https://blog.finxter.com/how-to-catch-and-print-exception-messages-in-python/
-                print(e)
-                warn(
-                    "Could not import `uncertainty_toolbox`. Maybe try `pip install uncertainty_toolbox`; if already installed, you might be running into issues with Shapely on Windows. See https://github.com/uncertainty-toolbox/uncertainty-toolbox/issues/63. Alternatively, use in `VickersHardness(recalibrate=False)`."
-                )
-            self.std_recalibrator = uncertainty_toolbox.recalibration.get_std_recalibrator(
+            import uncertainty_toolbox as uct
+
+            self.std_recalibrator = uct.recalibration.get_std_recalibrator(
                 self.y_pred, self.y_std, y_test_vals, criterion="ma_cal"
             )
             self.y_std_calib = self.std_recalibrator(self.y_std)
@@ -179,5 +179,8 @@ class VickersHardness(BaseEstimator):
         Path(self.result_dir).mkdir(exist_ok=True)
         self.result_df.to_csv(join(self.result_dir, "predicted_hv.csv"), index=False)
 
-        return self.y_pred
+        if return_uncertainty:
+            return self.y_pred, self.y_std_calib
+        else:
+            return self.y_pred
 
